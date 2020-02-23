@@ -1,5 +1,5 @@
 flask
-flask-boostrap
 spotipy
 flask-nav
 flask-wtf
+flask-bootstrap
