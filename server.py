@@ -4,6 +4,7 @@ import requests
 from flask_helpers import app, db, Party, User
 from party_form import PartyRoomCreateForm, PartyRoomJoinForm
 from spotify import sp_oauth, getSPOauthURI, get_user_from_access_token
+from random import shuffle
 import spotipy
 from config import Config
 
@@ -32,6 +33,7 @@ def party(room_id):
         spotify = spotipy.Spotify(client.access_token)
         tracks += list(spotify.current_user_top_tracks(limit=1).get("items", []))
 
+    shuffle(tracks)
     user = get_current_user()
     spotify = spotipy.Spotify(user.access_token)
     seeds = [track.get("uri") for idx, track in enumerate(tracks) if idx < 5]
