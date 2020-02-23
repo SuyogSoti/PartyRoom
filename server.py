@@ -105,12 +105,11 @@ def spotify_callback():
     code = sp_oauth.parse_response_code(url)
     
     if code:
-        token_info = sp_oauth.get_access_token(code)
-        print(token_info)
+        token_info = sp_oauth.get_access_token(code, check_cache=False)
         access_token = token_info['access_token']
 
     sp_user = get_user_from_access_token(access_token)
-    print(sp_user)
+
     if not sp_user:
         return redirect("/")
 
