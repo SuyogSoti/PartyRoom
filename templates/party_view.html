@@ -2,9 +2,9 @@
 
 
 {% block header %}
-  <h1>{% block title %}Party {{ room["name"] }}{% endblock %}</h1>
+  <h1>{% block title %}Party {{ room.get("name") }}{% endblock %}</h1>
 {% endblock %}
 
 {% block page %}
-  Hi this is the {{room["id"]}}.
+  Hi this is the {{ room.get("creator") }}/{{ room.get("name") }}.
 {% endblock %}

@@ -3,3 +3,4 @@ spotipy
 flask-nav
 flask-wtf
 flask-bootstrap
+flask-session

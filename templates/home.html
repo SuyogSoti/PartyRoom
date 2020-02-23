@@ -6,5 +6,10 @@
 {% endblock %}
 
 {% block page %}
-  Hi this is the home.
+  {% if user %}
+    Hi {{ user.get("display_name") }}, You are logged in! You can access the features!
+  {% else %}
+    You must log in with Spotify to use any features:
+    <a href="{{ spotify_url }}">Please Click Here to Log In With Spotify</a>
+  {% endif %}
 {% endblock %}
