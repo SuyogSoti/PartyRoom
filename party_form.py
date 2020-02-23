@@ -4,5 +4,7 @@ from wtforms.validators import Length, Email, Required
 
 # Form ORM
 class PartyRoom(FlaskForm):
-    room_name = TextField('What is the name of the Room?', validators=[Required(), Length(max=2047)] )
-    submit = SubmitField('Submit')
+    room_id = None;
+    room_creator = None;
+    room_name = TextField('What is the name of the Room?', validators=[Required(), Length(max=2047)])
+    submit = SubmitField('Submit - Requires Spotify Login')

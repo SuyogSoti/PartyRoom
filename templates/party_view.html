@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+
+
+{% block header %}
+  <h1>{% block title %}Party {{ room["name"] }}{% endblock %}</h1>
+{% endblock %}
+
+{% block page %}
+  Hi this is the {{room["id"]}}.
+{% endblock %}
