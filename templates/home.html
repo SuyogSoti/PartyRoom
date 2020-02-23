@@ -8,6 +8,16 @@
 {% block page %}
   {% if user %}
     Hi {{ user.get("display_name") }}, You are logged in! You can access the features!
+    {% for party in parties %}
+      <a href="/party/{{party.id}}">
+        <div class="partylist">
+          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRGOqjHuqFfBmBiBb8SFDHZSmjKoMIKVjtiwPSqfMnPnUQ_XQr_" alt="Playlist Image">          
+          <span>
+            {{ party.name.upper() }}
+          </span>
+        </div>
+      </a>
+    {% endfor %}
   {% else %}
     You must log in with Spotify to use any features:
     <a href="{{ spotify_url }}">Please Click Here to Log In With Spotify</a>

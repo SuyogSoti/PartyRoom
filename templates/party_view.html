@@ -2,9 +2,17 @@
 
 
 {% block header %}
-  <h1>{% block title %}Party {{ room.get("name") }}{% endblock %}</h1>
+  <h1>{% block title %}Party {{ party.name }}{% endblock %}</h1>
 {% endblock %}
 
 {% block page %}
-  Hi this is the {{ room.get("creator") }}/{{ room.get("name") }}.
+  <h3>Music Queue</h3>
+
+  Hi, the room id is: {{ party.id }}.
+
+  {% for track in tracks %}
+    <div>
+      <iframe src="https://open.spotify.com/embed?uri={{track.uri}}" width="1200" height="80" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
+    </div>
+  {% endfor %}
 {% endblock %}

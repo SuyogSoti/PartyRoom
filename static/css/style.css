@@ -7,3 +7,15 @@ section.content {
     max-width: 1200px;
     margin: auto;
 }
+
+div.partylist{
+    padding: 10px;
+    background: #f8f8f8;
+    height: 100px;
+}
+div.partylist img {
+    height: 80px;
+}
+div.partylist span {
+    padding: 10px;
+}

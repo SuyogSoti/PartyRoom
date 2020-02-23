@@ -4,7 +4,7 @@ import os
 
 SPOTIPY_REDIRECT_URI = 'http://localhost:5000/callback/spotify'
 PORT_NUMBER = 3000
-SCOPE = 'user-library-read'
+SCOPE = 'user-library-read user-top-read'
 CACHE = '.spotipyoauthcache'
 
 

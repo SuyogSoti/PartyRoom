@@ -4,3 +4,4 @@ flask-nav
 flask-wtf
 flask-bootstrap
 flask-session
+flask-sqlalchemy
