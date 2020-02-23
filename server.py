@@ -31,8 +31,13 @@ def party(room_id):
 
     for client in party.clients:
         spotify = spotipy.Spotify(client.access_token)
-        tracks += list(
-            spotify.current_user_top_tracks(limit=1).get("items", []))
+        try:
+            tracks += list(
+                spotify.current_user_top_tracks(limit=1).get("items", []))
+        except Exception as e:
+            spotify = sp_oauth.get_access_token(check_cache=False)
+            tracks += list(
+                spotify.current_user_top_tracks(limit=1).get("items", []))
 
     shuffle(tracks)
     user = get_current_user()
