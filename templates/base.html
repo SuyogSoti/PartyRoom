@@ -1,31 +1,40 @@
 {% extends "bootstrap/base.html" %}
 
-{% block styles %}
-{{super()}}
-<link rel="stylesheet"
-      href="{{url_for('static', filename='css/style.css')}}">
+{% block head %}
+    {{super()}}
+    
+    {% block styles %}
+    {{super()}}
+    <link rel="stylesheet" href="{{url_for('static', filename='css/style.css')}}">
+    {% endblock %}
+
+    {% block scripts %}
+    {{super()}}
+    <script src="{{url_for('static', filename='js/script.js')}}"></script>
+    {% endblock %}
 {% endblock %}
 
-{% block scripts %}
-<script src="{{url_for('static', filename='js/script.js')}}"></script>
-{{super()}}
-{% endblock %}
 
 {% block navbar %}
-<div class="navbar navbar-fixed-top">
-    hi
-</div>
+{{nav.mynavbar.render()}}
 {% endblock %}
+
+
+{% block content %}
 
 <section class="content">
     <header>
         {% block header %}{% endblock %}
     </header>
-    
+
     {% for message in get_flashed_messages() %}
-        <div class="flash">{{ message }}</div>
+    <div class="flash">{{ message }}</div>
     {% endfor %}
 
-    {% block content %}
+    {% block page %}
+
     {% endblock %}
+
 </section>
+
+{% endblock %}

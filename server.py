@@ -1,14 +1,22 @@
-from flask import Flask, render_template
-from flask_bootstrap import Bootstrap
-
-
-app = Flask(__name__)
-Bootstrap(app)
+from flask import render_template, request
+from flask_helpers import app
+from party_form import PartyRoom
 
 
 @app.route('/party/:room')
 def party():
     return 'Hello, World!'
+
+
+@app.route("/party/new", methods=["GET", "POST"])
+def new_party():
+    form = PartyRoom(request.form)
+
+    if not form.validate_on_submit() or request.method != "POST":
+        return render_template("new_party.html", form=PartyRoom())
+
+    room_name = form.room_name.data
+    return 'Submitted!'
 
 
 @app.route("/")
