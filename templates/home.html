@@ -7,7 +7,7 @@
 
 {% block page %}
   {% if user %}
-    Hi {{ user.get("display_name") }}, You are logged in! You can access the features!
+    Hi {{ user.name }}, You are logged in! You can access the features!
     {% for party in parties %}
       <a href="/party/{{party.id}}">
         <div class="partylist">

@@ -1,5 +1,5 @@
 import spotipy
-from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
+from spotipy.oauth2 import SpotifyOAuth
 import os
 
 SPOTIPY_REDIRECT_URI = 'http://localhost:5000/callback/spotify'
@@ -18,9 +18,6 @@ sp_oauth = SpotifyOAuth(os.environ.get("SPOTIPY_CLIENT_ID"),
 def getSPOauthURI():
     auth_url = sp_oauth.get_authorize_url()
     return auth_url
-
-
-sp = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials())
 
 
 def get_user_from_access_token(token):

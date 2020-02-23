@@ -1,7 +1,7 @@
 from flask import render_template, request, redirect, session
 import json
 import requests
-from flask_helpers import app, db, Party
+from flask_helpers import app, db, Party, User
 from party_form import PartyRoomCreateForm, PartyRoomJoinForm
 from spotify import sp_oauth, getSPOauthURI, get_user_from_access_token
 import spotipy
@@ -18,9 +18,17 @@ def party(room_id):
     if not party:
         return redirect("/")
     
-    ids = json.loads(party.client_ids)
-    spotify = spotipy.Spotify(session.get(Config.USER_KEY))
-    tracks = spotify.current_user_top_tracks(limit=1000).get("items", [])
+    tracks = []
+
+    room_id = str(room_id)
+    session["parties"] = session.get("parties", {})
+    if room_id not in session["parties"]:
+        session["parties"][room_id] = [session.get(Config.USER_KEY)]
+
+    for client in party.clients:
+        spotify = spotipy.Spotify(client.access_token)
+        tracks += list(spotify.current_user_top_tracks(limit=10).get("items", []))
+    
     random.shuffle(tracks)
     return render_template("party_view.html", party=party, tracks=tracks)
 
@@ -37,14 +45,17 @@ def new_party():
 
     room_name = form.room_name.data
     room_password = form.room_password.data
-    user = get_user_from_access_token(session.get(Config.USER_KEY))
-    room_creator = user.get("id")
+    user = get_current_user()
+    room_creator = user.id
+
     party = Party(creator=room_creator,
                   name=room_name,
-                  client_ids=json.dumps([room_creator]),
                   password=room_password)
+    party.clients.append(user)
     db.session.add(party)
     db.session.commit()
+
+
     return redirect("/party/{}".format(party.id))
 
 
@@ -59,16 +70,13 @@ def join_party():
 
     room_id = form.room_id.data
     room_password = form.room_password.data
-    user = get_user_from_access_token(session.get(Config.USER_KEY))
-    current_user = user.get("id")
     party = Party.query.get(int(room_id))
     
     if not party or party.password != room_password:
-        return redirect("/party/join")
+        return render_template("join_party.html", form=form)
 
-    ids = json.loads(party.client_ids)
-    ids.append(current_user)
-    party.client_ids = json.dumps(list(set(ids)))
+    user = get_current_user()
+    party.clients.append(user)
     db.session.commit()
     
     return redirect("/party/{}".format(party.id))
@@ -76,31 +84,47 @@ def join_party():
 
 @app.route("/")
 def home():
-    user = get_user_from_access_token(session.get(Config.USER_KEY))
+    user = get_current_user()
     parites = []
     if user:
-        parites = db.session.query(Party).filter(Party.creator == user.get("id")).all()
+        parites = db.session.query(Party).filter(Party.creator == user.id).all()
     return render_template("home.html", user=user, spotify_url=getSPOauthURI(), parties=parites)
 
+
+
+def get_current_user():
+    if session.get(Config.USER_KEY):
+        return User.query.get(session.get(Config.USER_KEY))
+    return None
 
 @app.route("/callback/spotify")
 def spotify_callback():
     access_token = None
 
-    token_info = sp_oauth.get_cached_token()
-
-    if token_info:
+    url = request.url
+    code = sp_oauth.parse_response_code(url)
+    
+    if code:
+        token_info = sp_oauth.get_access_token(code)
+        print(token_info)
         access_token = token_info['access_token']
-    else:
-        url = request.url
-        code = sp_oauth.parse_response_code(url)
-        if code:
-            token_info = sp_oauth.get_access_token(code)
-            access_token = token_info['access_token']
 
-    session[Config.USER_KEY] = access_token
+    sp_user = get_user_from_access_token(access_token)
+    print(sp_user)
+    if not sp_user:
+        return redirect("/")
+
+    user = User.query.get(sp_user.get("id"))
+    if user:
+        user.access_token = access_token
+    else:
+        user = User(id=sp_user.get("id"), access_token=access_token, name=sp_user.get("display_name"))
+        db.session.add(user)
+
+    db.session.commit()
+    session[Config.USER_KEY] = user.id
     return redirect("/")
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, host="0.0.0.0")
