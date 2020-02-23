@@ -17,7 +17,7 @@ def party(room_id):
     party = Party.query.get(int(room_id))
     if not party:
         return redirect("/")
-    
+
     tracks = []
 
     room_id = str(room_id)
@@ -27,17 +27,24 @@ def party(room_id):
 
     limit = 1
     if len(party.clients) < 5:
-        limit = int(5/len(party.clients))
+        limit = int(5 / len(party.clients))
 
     for client in party.clients:
         spotify = spotipy.Spotify(client.access_token)
-        tracks += list(spotify.current_user_top_tracks(limit=1).get("items", []))
+        tracks += list(
+            spotify.current_user_top_tracks(limit=1).get("items", []))
 
     shuffle(tracks)
     user = get_current_user()
     spotify = spotipy.Spotify(user.access_token)
     seeds = [track.get("uri") for idx, track in enumerate(tracks) if idx < 5]
-    tracks = spotify.recommendations(seed_tracks=seeds, limit=50)
+    kwarg = {
+        "target_danceability": party.danceability,
+        "target_loudness": party.loudness,
+        "target_energy": party.energy,
+        "target_speechiness": party.speechiness
+    }
+    tracks = spotify.recommendations(seed_tracks=seeds, limit=50, **kwarg)
     tracks = tracks.get("tracks")
     return render_template("party_view.html", party=party, tracks=tracks)
 
@@ -54,16 +61,24 @@ def new_party():
 
     room_name = form.room_name.data
     room_password = form.room_password.data
+    danceability = float(form.danceability.data)
+    loudness = float(form.loudness.data)
+    energy = float(form.energy.data)
+    speechiness = float(form.speechiness.data)
+
     user = get_current_user()
     room_creator = user.id
 
     party = Party(creator=room_creator,
                   name=room_name,
-                  password=room_password)
+                  password=room_password,
+                  danceability=danceability,
+                  loudness=loudness,
+                  energy=energy,
+                  speechiness=speechiness)
     party.clients.append(user)
     db.session.add(party)
     db.session.commit()
-
 
     return redirect("/party/{}".format(party.id))
 
@@ -80,14 +95,14 @@ def join_party():
     room_id = form.room_id.data
     room_password = form.room_password.data
     party = Party.query.get(int(room_id))
-    
+
     if not party or party.password != room_password:
         return render_template("join_party.html", form=form)
 
     user = get_current_user()
     party.clients.append(user)
     db.session.commit()
-    
+
     return redirect("/party/{}".format(party.id))
 
 
@@ -96,9 +111,12 @@ def home():
     user = get_current_user()
     parites = []
     if user:
-        parites = db.session.query(Party).filter(Party.creator == user.id or Party.clients.any(id=user.id)).all()
-    return render_template("home.html", user=user, spotify_url=getSPOauthURI(), parties=parites)
-
+        parites = db.session.query(Party).filter(
+            Party.creator == user.id or Party.clients.any(id=user.id)).all()
+    return render_template("home.html",
+                           user=user,
+                           spotify_url=getSPOauthURI(),
+                           parties=parites)
 
 
 def get_current_user():
@@ -106,13 +124,14 @@ def get_current_user():
         return User.query.get(session.get(Config.USER_KEY))
     return None
 
+
 @app.route("/callback/spotify")
 def spotify_callback():
     access_token = None
 
     url = request.url
     code = sp_oauth.parse_response_code(url)
-    
+
     if code:
         token_info = sp_oauth.get_access_token(code, check_cache=False)
         access_token = token_info['access_token']
@@ -126,7 +145,9 @@ def spotify_callback():
     if user:
         user.access_token = access_token
     else:
-        user = User(id=sp_user.get("id"), access_token=access_token, name=sp_user.get("display_name"))
+        user = User(id=sp_user.get("id"),
+                    access_token=access_token,
+                    name=sp_user.get("display_name"))
         db.session.add(user)
 
     db.session.commit()

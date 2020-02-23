@@ -31,6 +31,11 @@ class Party(db.Model):
     creator = db.Column(db.String, nullable=False)
     name = db.Column(db.String, nullable=False)
     password = db.Column(db.String, nullable=False)
+    
+    danceability = db.Column(db.Float, nullable=True)
+    loudness  = db.Column(db.Float, nullable=True)
+    energy  = db.Column(db.Float, nullable=True)
+    speechiness  = db.Column(db.Float, nullable=True)
 
     def __repr__(self):
         return '<Party {}>'.format(self.id)
