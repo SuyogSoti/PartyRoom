@@ -5,7 +5,6 @@ from flask_helpers import app, db, Party, User
 from party_form import PartyRoomCreateForm, PartyRoomJoinForm
 from spotify import sp_oauth, getSPOauthURI, get_user_from_access_token
 import spotipy
-import random
 from config import Config
 
 
@@ -25,11 +24,19 @@ def party(room_id):
     if room_id not in session["parties"]:
         session["parties"][room_id] = [session.get(Config.USER_KEY)]
 
+    limit = 1
+    if len(party.clients) < 5:
+        limit = int(5/len(party.clients))
+
     for client in party.clients:
         spotify = spotipy.Spotify(client.access_token)
-        tracks += list(spotify.current_user_top_tracks(limit=10).get("items", []))
-    
-    random.shuffle(tracks)
+        tracks += list(spotify.current_user_top_tracks(limit=1).get("items", []))
+
+    user = get_current_user()
+    spotify = spotipy.Spotify(user.access_token)
+    seeds = [track.get("uri") for idx, track in enumerate(tracks) if idx < 5]
+    tracks = spotify.recommendations(seed_tracks=seeds, limit=50)
+    tracks = tracks.get("tracks")
     return render_template("party_view.html", party=party, tracks=tracks)
 
 
@@ -87,7 +94,7 @@ def home():
     user = get_current_user()
     parites = []
     if user:
-        parites = db.session.query(Party).filter(Party.creator == user.id).all()
+        parites = db.session.query(Party).filter(Party.creator == user.id or Party.clients.any(id=user.id)).all()
     return render_template("home.html", user=user, spotify_url=getSPOauthURI(), parties=parites)
 
 
