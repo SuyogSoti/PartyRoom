@@ -1,4 +1,4 @@
-from flask import render_template, request, redirect, session
+from flask import render_template, request, redirect, session, jsonify
 import json
 import requests
 from flask_helpers import app, db, Party, User
@@ -7,6 +7,22 @@ from spotify import sp_oauth, getSPOauthURI, get_user_from_access_token
 from random import shuffle
 import spotipy
 from config import Config
+
+
+@app.route("/dish/data")
+def dish():
+    if not session.get(Config.USER_KEY):
+        return redirect("/")
+
+    user = get_current_user()
+    spotify = spotipy.Spotify(user.access_token)
+    tracks = []
+    try:
+        tracks += list(
+            spotify.current_user_top_tracks(limit=100).get("items", []))
+    except Exception as e:
+        return render_template("/")
+    return jsonify(tracks)
 
 
 @app.route('/party/<int:room_id>')
@@ -20,11 +36,6 @@ def party(room_id):
 
     tracks = []
 
-    room_id = str(room_id)
-    session["parties"] = session.get("parties", {})
-    if room_id not in session["parties"]:
-        session["parties"][room_id] = [session.get(Config.USER_KEY)]
-
     limit = 1
     if len(party.clients) < 5:
         limit = int(5 / len(party.clients))
@@ -35,9 +46,10 @@ def party(room_id):
             tracks += list(
                 spotify.current_user_top_tracks(limit=1).get("items", []))
         except Exception as e:
-            spotify = sp_oauth.get_access_token(check_cache=False)
-            tracks += list(
-                spotify.current_user_top_tracks(limit=1).get("items", []))
+            pass
+    
+    if not tracks:
+        return redirect("/")
 
     shuffle(tracks)
     user = get_current_user()
