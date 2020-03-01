@@ -19,3 +19,10 @@ div.partylist img {
 div.partylist span {
     padding: 10px;
 }
+
+div.form-error {
+    background-color: red;
+    color: white;
+    text-align: center;
+    padding: 5px;
+}

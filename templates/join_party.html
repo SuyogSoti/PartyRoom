@@ -6,6 +6,11 @@
   <h1>{% block title %}Join A Party{% endblock %}</h1>
 {% endblock %}
 
+
 {% block page %}
+  {% if error %}
+    <div class="form-error">{{ error }}</div>
+  {% endif %}
+
   {{ wtf.quick_form(form) }}
 {% endblock %}

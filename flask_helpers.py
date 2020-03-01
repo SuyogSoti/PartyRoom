@@ -61,6 +61,3 @@ class UserPartyLink(db.Model):
     client_id = db.Column(db.String,
                           db.ForeignKey('user.id'),
                           primary_key=True)
-
-
-db.create_all()

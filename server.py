@@ -7,6 +7,11 @@ from spotify import sp_oauth, getSPOauthURI, get_user_from_access_token, refresh
 import spotipy
 from config import Config
 import datetime
+import traceback
+
+db.create_all()
+
+MAX_CLIENTS_PER_ROOM = 100
 
 
 @app.route("/dish/data")
@@ -37,15 +42,17 @@ def party(room_id):
 
     tracks = set()
 
-    number_of_songs_to_store = 100
+    number_of_songs_to_store = MAX_CLIENTS_PER_ROOM
     songs_per_client = int(number_of_songs_to_store / len(party.clients))
     refresh_token_if_necessary(party.clients, db)
     for client in party.clients:
         spotify = spotipy.Spotify(client.access_token)
         try:
-            user_tracks = set(
-                spotify.current_user_top_tracks(
-                    limit=number_of_songs_to_store).get("items", []))
+            songs = [
+                song.get("uri") for song in spotify.current_user_top_tracks(
+                    limit=songs_per_client).get("items", [])
+            ]
+            user_tracks = set(songs)
             if not tracks:
                 tracks = user_tracks
             elif tracks.isdisjoint(user_tracks):
@@ -57,13 +64,13 @@ def party(room_id):
             else:
                 tracks.intersection_update(user_tracks)
         except Exception as e:
-            pass
+            print(traceback.format_exc())
 
     if not tracks:
         return redirect("/")
 
     spotify = spotipy.Spotify(user.access_token)
-    seeds = [track.get("uri") for idx, track in enumerate(tracks) if idx < 5]
+    seeds = list(tracks)[:5]
     kwarg = {
         "target_danceability": party.danceability,
         "target_loudness": party.loudness,
@@ -124,7 +131,14 @@ def join_party():
     party = Party.query.get(int(room_id))
 
     if not party or party.password != room_password:
-        return render_template("join_party.html", form=form)
+        return render_template("join_party.html",
+                               form=form,
+                               error="Incorrect Room Id or Password")
+
+    if len(party.clients) >= MAX_CLIENTS_PER_ROOM:
+        return render_template("join_party.html",
+                               form=form,
+                               error="Max number of clients per room exceeded")
 
     party.clients.append(user)
     db.session.commit()
