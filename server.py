@@ -4,17 +4,16 @@ import requests
 from flask_helpers import app, db, Party, User
 from party_form import PartyRoomCreateForm, PartyRoomJoinForm
 from spotify import sp_oauth, getSPOauthURI, get_user_from_access_token
-from random import shuffle
 import spotipy
 from config import Config
 
 
 @app.route("/dish/data")
 def dish():
-    if not session.get(Config.USER_KEY):
+    user = get_current_user()
+    if not user:
         return redirect("/")
 
-    user = get_current_user()
     spotify = spotipy.Spotify(user.access_token)
     tracks = []
     try:
@@ -27,32 +26,40 @@ def dish():
 
 @app.route('/party/<int:room_id>')
 def party(room_id):
-    if not session.get(Config.USER_KEY):
+    user = get_current_user()
+    if not user:
         return redirect("/")
 
     party = Party.query.get(int(room_id))
     if not party:
         return redirect("/")
 
-    tracks = []
+    tracks = set()
 
-    limit = 1
-    if len(party.clients) < 5:
-        limit = int(5 / len(party.clients))
-
+    number_of_songs_to_store = 100
+    songs_per_client = int(number_of_songs_to_store / len(party.clients))
     for client in party.clients:
         spotify = spotipy.Spotify(client.access_token)
         try:
-            tracks += list(
-                spotify.current_user_top_tracks(limit=1).get("items", []))
+            user_tracks = set(
+                spotify.current_user_top_tracks(
+                    limit=number_of_songs_to_store).get("items", []))
+            if not tracks:
+                tracks = user_tracks
+            elif tracks.isdisjoint(user_tracks):
+                list_tracks = list(tracks)
+                list_user_tracks = list(user_tracks)
+                tracks = set(list_tracks[:number_of_songs_to_store -
+                                         songs_per_client] +
+                             list_user_tracks[:songs_per_client])
+            else:
+                tracks.intersection_update(user_tracks)
         except Exception as e:
             pass
-    
+
     if not tracks:
         return redirect("/")
 
-    shuffle(tracks)
-    user = get_current_user()
     spotify = spotipy.Spotify(user.access_token)
     seeds = [track.get("uri") for idx, track in enumerate(tracks) if idx < 5]
     kwarg = {
@@ -68,7 +75,8 @@ def party(room_id):
 
 @app.route("/party/new", methods=["GET", "POST"])
 def new_party():
-    if not session.get(Config.USER_KEY):
+    user = get_current_user()
+    if not user:
         return redirect("/")
 
     form = PartyRoomCreateForm(request.form)
@@ -83,7 +91,6 @@ def new_party():
     energy = float(form.energy.data)
     speechiness = float(form.speechiness.data)
 
-    user = get_current_user()
     room_creator = user.id
 
     party = Party(creator=room_creator,
@@ -102,7 +109,8 @@ def new_party():
 
 @app.route("/party/join", methods=["GET", "POST"])
 def join_party():
-    if not session.get(Config.USER_KEY):
+    user = get_current_user()
+    if not user:
         return redirect("/")
     form = PartyRoomJoinForm(request.form)
 
@@ -116,7 +124,6 @@ def join_party():
     if not party or party.password != room_password:
         return render_template("join_party.html", form=form)
 
-    user = get_current_user()
     party.clients.append(user)
     db.session.commit()
 
