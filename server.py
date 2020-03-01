@@ -6,6 +6,7 @@ from party_form import PartyRoomCreateForm, PartyRoomJoinForm
 from spotify import sp_oauth, getSPOauthURI, get_user_from_access_token
 import spotipy
 from config import Config
+import datetime
 
 
 @app.route("/dish/data")
@@ -145,13 +146,21 @@ def home():
 
 def get_current_user():
     if session.get(Config.USER_KEY):
-        return User.query.get(session.get(Config.USER_KEY))
+        user = User.query.get(session.get(Config.USER_KEY))
+        if user.token_expiration_time <= datetime.datetime.now():
+            token_info = sp_oauth.refresh_access_token(user.refresh_token)
+            user.access_token = token_info["access_token"]
+            user.refresh_token = token_info["refresh_token"]
+            db.session.commit()
+        return user
     return None
 
 
 @app.route("/callback/spotify")
 def spotify_callback():
     access_token = None
+    refresh_token = None
+    expires_at = None
 
     url = request.url
     code = sp_oauth.parse_response_code(url)
@@ -159,6 +168,8 @@ def spotify_callback():
     if code:
         token_info = sp_oauth.get_access_token(code, check_cache=False)
         access_token = token_info['access_token']
+        refresh_token = token_info['refresh_token']
+        expires_at = datetime.datetime.fromtimestamp(token_info['expires_at'])
 
     sp_user = get_user_from_access_token(access_token)
 
@@ -168,10 +179,14 @@ def spotify_callback():
     user = User.query.get(sp_user.get("id"))
     if user:
         user.access_token = access_token
+        user.refesh_token = refresh_token
+        user.token_expiration_time = expires_at
     else:
         user = User(id=sp_user.get("id"),
                     access_token=access_token,
-                    name=sp_user.get("display_name"))
+                    name=sp_user.get("display_name"),
+                    refresh_token=refresh_token,
+                    token_expiration_time=expires_at)
         db.session.add(user)
 
     db.session.commit()

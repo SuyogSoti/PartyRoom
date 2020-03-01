@@ -31,7 +31,7 @@ class Party(db.Model):
     creator = db.Column(db.String, nullable=False)
     name = db.Column(db.String, nullable=False)
     password = db.Column(db.String, nullable=False)
-    
+
     danceability = db.Column(db.Float, nullable=True)
     loudness  = db.Column(db.Float, nullable=True)
     energy  = db.Column(db.Float, nullable=True)
@@ -44,6 +44,8 @@ class Party(db.Model):
 class User(db.Model):
     id = db.Column(db.String, primary_key=True)
     access_token = db.Column(db.String, nullable=False)
+    refresh_token = db.Column(db.String, nullable=False)
+    token_expiration_time = db.Column(db.DateTime, nullable=False)
     parites = relationship(Party, secondary='userpartylink')
     name = db.Column(db.String, nullable=False)
 

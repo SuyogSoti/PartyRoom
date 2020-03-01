@@ -5,3 +5,4 @@ flask-wtf
 flask-bootstrap
 flask-session
 flask-sqlalchemy
+psycopg2-binary
