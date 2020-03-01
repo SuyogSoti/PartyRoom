@@ -3,7 +3,7 @@ import json
 import requests
 from flask_helpers import app, db, Party, User
 from party_form import PartyRoomCreateForm, PartyRoomJoinForm
-from spotify import sp_oauth, getSPOauthURI, get_user_from_access_token
+from spotify import sp_oauth, getSPOauthURI, get_user_from_access_token, refresh_token_if_necessary
 import spotipy
 from config import Config
 import datetime
@@ -39,6 +39,7 @@ def party(room_id):
 
     number_of_songs_to_store = 100
     songs_per_client = int(number_of_songs_to_store / len(party.clients))
+    refresh_token_if_necessary(party.clients, db)
     for client in party.clients:
         spotify = spotipy.Spotify(client.access_token)
         try:
@@ -147,11 +148,7 @@ def home():
 def get_current_user():
     if session.get(Config.USER_KEY):
         user = User.query.get(session.get(Config.USER_KEY))
-        if user.token_expiration_time <= datetime.datetime.now():
-            token_info = sp_oauth.refresh_access_token(user.refresh_token)
-            user.access_token = token_info["access_token"]
-            user.refresh_token = token_info["refresh_token"]
-            db.session.commit()
+        refresh_token_if_necessary([user], db)
         return user
     return None
 

@@ -24,3 +24,11 @@ def get_user_from_access_token(token):
     if token:
         spotify = spotipy.Spotify(token)
         return spotify.current_user()
+
+def refresh_token_if_necessary(users, db):
+    for user in users:
+        if user and user.token_expiration_time <= datetime.datetime.now():
+            token_info = sp_oauth.refresh_access_token(user.refresh_token)
+            user.access_token = token_info["access_token"]
+            user.refresh_token = token_info["refresh_token"]
+    db.session.commit()
