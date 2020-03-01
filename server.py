@@ -50,9 +50,9 @@ def party(room_id):
             elif tracks.isdisjoint(user_tracks):
                 list_tracks = list(tracks)
                 list_user_tracks = list(user_tracks)
-                tracks = set(list_tracks[:number_of_songs_to_store -
-                                         songs_per_client] +
-                             list_user_tracks[:songs_per_client])
+                tracks = set(list_user_tracks[:songs_per_client] +
+                             list_tracks[:number_of_songs_to_store -
+                                         songs_per_client])
             else:
                 tracks.intersection_update(user_tracks)
         except Exception as e:
