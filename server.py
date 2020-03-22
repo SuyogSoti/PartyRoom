@@ -14,22 +14,6 @@ db.create_all()
 MAX_CLIENTS_PER_ROOM = 100
 
 
-@app.route("/dish/data")
-def dish():
-    user = get_current_user()
-    if not user:
-        return redirect("/")
-
-    spotify = spotipy.Spotify(user.access_token)
-    tracks = []
-    try:
-        tracks += list(
-            spotify.current_user_top_tracks(limit=100).get("items", []))
-    except Exception as e:
-        return render_template("/")
-    return jsonify(tracks)
-
-
 @app.route('/party/<int:room_id>')
 def party(room_id):
     user = get_current_user()
@@ -40,7 +24,7 @@ def party(room_id):
     if not party:
         return redirect("/")
 
-    tracks = set()
+    tracks = {}
 
     number_of_songs_to_store = MAX_CLIENTS_PER_ROOM
     songs_per_client = int(number_of_songs_to_store / len(party.clients))
@@ -48,21 +32,18 @@ def party(room_id):
     for client in party.clients:
         spotify = spotipy.Spotify(client.access_token)
         try:
-            songs = [
-                song.get("uri") for song in spotify.current_user_top_tracks(
-                    limit=songs_per_client).get("items", [])
-            ]
-            user_tracks = set(songs)
-            if not tracks:
-                tracks = user_tracks
-            elif tracks.isdisjoint(user_tracks):
-                list_tracks = list(tracks)
-                list_user_tracks = list(user_tracks)
-                tracks = set(list_user_tracks[:songs_per_client] +
-                             list_tracks[:number_of_songs_to_store -
-                                         songs_per_client])
-            else:
-                tracks.intersection_update(user_tracks)
+            user_tracks = spotify.current_user_top_tracks(
+                limit=songs_per_client).get("items", [])
+            for track in user_tracks:
+                key = track.get("uri")
+                if key not in tracks:
+                    tracks[key] = [0, track]
+                tracks[key][0] += 1 + (
+                    party.danceability * track.get("danceability", 0)) + (
+                        party.loudness * track.get("loudness", 0)) + (
+                            party.energy * track.get("energy", 0)) + (
+                                party.speechiness * track.get("speechiness", 0))
+
         except Exception as e:
             print(traceback.format_exc())
 
@@ -70,7 +51,10 @@ def party(room_id):
         return redirect("/")
 
     spotify = spotipy.Spotify(user.access_token)
-    seeds = list(tracks)[:5]
+    seeds = sorted(tracks,
+                   key=lambda x:
+                   (tracks[x][0], tracks[x][1].get("popularity")),
+                   reverse=True)[:5]
     kwarg = {
         "target_danceability": party.danceability,
         "target_loudness": party.loudness,
