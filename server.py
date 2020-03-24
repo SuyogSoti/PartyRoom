@@ -34,15 +34,18 @@ def party(room_id):
         try:
             user_tracks = spotify.current_user_top_tracks(
                 limit=songs_per_client).get("items", [])
-            for track in user_tracks:
+            uri_list = [track.get("uri") for track in user_tracks][:50]
+            audio_features = spotify.audio_features(tracks=uri_list)
+            for idx, track in enumerate(user_tracks):
+                audio = audio_features[idx]
                 key = track.get("uri")
                 if key not in tracks:
                     tracks[key] = [0, track]
                 tracks[key][0] += 1 + (
-                    party.danceability * track.get("danceability", 0)) + (
-                        party.loudness * track.get("loudness", 0)) + (
-                            party.energy * track.get("energy", 0)) + (
-                                party.speechiness * track.get("speechiness", 0))
+                    party.danceability * audio.get("danceability", 0)) + (
+                        party.loudness * audio.get("loudness", 0)) + (
+                            party.energy * audio.get("energy", 0)) + (
+                                party.speechiness * audio.get("speechiness", 0))
 
         except Exception as e:
             print(traceback.format_exc())
